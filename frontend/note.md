@@ -305,6 +305,12 @@ btn.addEventListener("click", function () {
 });
 ```
 
+# 移动端适配
+- 使用响应式设计，结合媒体查询（`@media`）调整布局。
+- 使用相对单位（如 `em`、`rem`、`vw`）代替绝对单位（如 `px`）。
+- 注意触摸事件（`touchstart`、`touchmove`、`touchend`）和点击事件的区别。
+- 视区设置：`<meta name="viewport" content="width=device-width, initial-scale=1.0" />`
+
 # 前端学习路线（新手版）
 1. HTML：标签 + 语义化 + 表单
 2. CSS：选择器 + 盒模型 + Flex + 响应式

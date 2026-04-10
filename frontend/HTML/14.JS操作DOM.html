@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS操作DOM</title>
+</head>
+<body>
+    <h1 id="title">Hello World</h1>
+    <p class="content">这是一个段落。</p>
+    <button id="changeText">改变文本</button>
+    <p id="p1">这是一个段落</p>
+
+    <button>改变样式</button>
+    <script>
+        // 获取元素
+        const title = document.getElementById('title');
+        const content = document.querySelector('.content');
+        const button = document.getElementById('changeText');
+        var p1 = document.getElementById('p1');
+        var button2 = document.getElementsByTagName('button')[1]; // 获取第二个按钮
+        // 修改p1内容
+        p1.innerText = '<a href="a">这是一个新的段落内容</a>'; // innerText会将HTML标签当作普通文本处理
+        // p1.innerHTML = '<a href="a">这是一个新的段落内容</a>'; // innerHTML会将HTML标签解析为实际的HTML元素
+
+        // 修改元素内容
+        button.addEventListener('click', () => {
+            title.textContent = 'Hello JavaScript';
+            content.textContent = '段落内容已被修改。';
+        });
+
+        p1.style.color = 'red'; // 修改样式
+        p1.style.fontSize = '20px'; // 修改样式
+
+        button2.onclick = function() {
+            alert('按钮被点击了');
+        }
+
+        /*
+            appendChild: 向元素末尾添加一个新的子元素
+            insertBefore: 在指定的子元素之前插入一个新的子元素
+            removeChild: 从元素中删除一个子元素
+            replaceChild: 用一个新的子元素替换一个现有的子元素
+            ...
+        */
+    </script>
+</body>
+</html>
