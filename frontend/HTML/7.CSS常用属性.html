@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS常用属性</title>
+
+    <style>
+        /* 块级元素 */
+        .block {
+            background-color: aqua;
+            width: 200px;
+            height: 150px;
+        }
+
+        /* 行内元素 */
+        /* 不可以设置宽高 */
+        .inline {
+            background-color: brown;
+        }
+
+        /* 行内块元素 */
+        .inline-block {
+            width: 100px;
+            height: 150px;
+        }
+
+        /* display属性实现三种元素相互转换 */
+        .div-inline {
+            display: inline;
+            background-color: aquamarine;
+        }
+
+        .span-inline-block {
+            display: inline-block;
+            background-color: lightcoral;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="font: bolder 50px 'KaiTi';">这是一个font的符合属性</h1>
+    <p style="line-height: 40px;">这是一个长文本，被控制了行高</p>
+
+    <div class="block">这是一个块级元素</div>
+    <span class="inline">这是一个行内元素</span>
+    <img src="../sources/image.png" class="inline-block">
+    <img src="../sources/image.png" class="inline-block">
+    <img src="../sources/image.png" class="inline-block">
+    <h2>display</h2>
+    <!-- display可以实现三种元素的相互转化 -->
+    <div class="div-inline" style="display: inline; background-color: aquamarine;">这是一个转换为行内元素的div元素</div>
+    <span class="span-inline-block">这是一个转换为行内块元素的span元素</span>
+</body>
+</html>

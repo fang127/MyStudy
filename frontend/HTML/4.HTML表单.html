@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML表单</title>
+    <!-- 表单指 -->
+</head>
+<body>
+    <!-- HTML 表单用于收集用户的输入信息。
+HTML 表单表示文档中的一个区域，此区域包含交互控件，将用户收集到的信息发送到 Web 服务器。
+HTML 表单通常包含各种输入字段、复选框、单选按钮、下拉列表等元素。-->
+    
+    <!-- form 元素用于创建表单-->
+    <!-- form的 action 属性定义了表单数据提交的目标 URL，method 属性定义了提交数据的 HTTP 方法（这里使用的是 "post"）。-->
+    <form>
+        <!-- input标签是一个行内标签，用于创建各种类型的输入控件 -->
+        <!-- type属性指定输入控件的类型，常见的有text、password、email、number、checkbox、radio等 -->
+        <!-- 下拉列表（select）、单选框（radio-buttons）、复选框（checkbox） 等等 -->
+        <!-- placeholder 表示占位符，value表示默认的输入值-->
+        <input type="text" placeholder="请输入文本">
+        <br>
+        <input type="text" value="请输入文本">
+        <br>
+        <!-- 定义了 <input> 元素的标签，一般为输入标题 -->
+        <label for="pwd">密码</label>
+        <input type="password" placeholder="请输入密码">
+        <br>
+        <label for="email">邮箱</label>
+        <input type="email" placeholder="请输入邮箱">
+        <br>
+        <input type="number" placeholder="请输入数字">
+        <br>
+        <input type="checkbox"> 选项 1
+        <input type="checkbox"> 选项 2
+        <input type="checkbox"> 选项 3
+        <br>
+        <label>性别：</label>
+        <input type="radio" name="gender"> 男
+        <input type="radio" name="gender"> 女
+        <input type="radio" name="gender"> 其他
+        <br>
+        <label for="country">国籍</label>
+        <select id="country" name="country">
+            <option value="cn">CN</option>
+            <option value="usa">USA</option>
+            <option value="uk">UK</option>
+        </select>
+        <br>
+        <input type="submit" value="上传">
+    </form>
+
+    <form action="a"></form>
+</body>
+</html>

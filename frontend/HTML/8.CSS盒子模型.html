@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS盒子模型</title>
+    <style>
+        .demo {
+            background-color: aqua;
+            display: inline-block;
+            border: 5px dashed yellowgreen;
+            padding: 50px;
+            margin: 40px;
+        }
+
+        .border-demo {
+            background-color: yellow;
+            width: 300px;
+            height: 200px;
+            /* 可以只写一个，这样上右下左都采用 */
+            border-style: solid dashed dotted double; /* 边框样式，上-右-下-左 */
+            border-width: 30px 20px 30px 0; /* 边框宽度，上-右-下-左 */
+            border-color: blueviolet;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo">这是一个盒子模型示例</div>
+    <br>
+    <div class="border-demo">这是一个边框示例</div>
+</body>
+</html>

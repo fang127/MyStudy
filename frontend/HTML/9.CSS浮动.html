@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS浮动</title>
+
+    <style>
+        .father {
+            background-color: aquamarine;
+            /* height: 150px; 注释掉会出现高度坍塌 */
+            border: 3px solid brown;
+            overflow: hidden; /* 解决高度坍塌问题 */
+        }
+
+        .left-son {
+            background-color: blue;
+            width: 100px;
+            height: 100px;
+            float: left; /* 左浮动 */
+        }
+
+        .right-son {
+            background-color: red;
+            width: 100px;
+            height: 100px;
+            float: right; /* 右浮动 */
+        }
+</style>
+</head>
+<body>
+    <div class="father">
+        <div class="left-son">左浮动</div>
+        <div class="right-son">右浮动</div>
+    </div>
+    <p>这是一段文本这是一段文本这是一段文本这是一段文本这是一段文本这是一段文本这是一段文本这是一段文本这是一段文本这是一段文本</p>
+</body>
+</html>
