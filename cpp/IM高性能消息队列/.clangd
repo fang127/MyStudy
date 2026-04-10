@@ -1,0 +1,8 @@
+CompileFlags:
+  Add: 
+    - "-Wall"
+    - "-Wextra"
+    - "-std=c++17"
+
+Documentation:
+  CommentFormat: Doxygen
