@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS事件处理</title>
+</head>
+<body>
+    <button onclick="clickHandler()">这是一个点击事件按钮</button>
+    
+    <!-- 聚焦事件(即鼠标点上去触发) -->
+    <input type="text" onfocus="focus_event()">
+
+    <!-- 失焦事件(鼠标点击别处触发) -->
+    <input type="text" onblur="alert('输入框失去了焦点！')">
+
+    <script>
+        function clickHandler() {
+            alert("按钮被点击了！");
+        }
+
+        function focus_event() {
+            alert("输入框获得了焦点！");
+        }
+
+
+    </script>
+</body>
+</html>

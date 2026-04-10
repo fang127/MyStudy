@@ -180,6 +180,37 @@ Flex 示例：
 	- 操作页面内容（DOM）
 	- 与服务器交互（获取/提交数据）
 
+## 2. 导入方式
+1. 内部脚本
+```html
+<script>
+	console.log("Hello JavaScript");
+</script>
+```
+
+2. 外部脚本
+```html
+<script src="script.js"></script>
+```
+
+3. 模块化脚本（推荐）
+```html
+<script type="module" src="main.js"></script>
+```
+
+4. 内联事件处理器（不推荐）
+```html
+<button onclick="alert('点击了按钮')">点我</button>
+```
+
+5. 事件监听器（推荐）
+```js
+const btn = document.querySelector("#btn");
+btn.addEventListener("click", function () {
+	alert("点击了按钮");
+});
+```
+
 ## 2. 基本语法示例
 ```js
 let name = "Tom";
@@ -258,6 +289,21 @@ async function getData() {
 - 最后进阶异步、模块化、工程化（如 Vite、Webpack）。
 
 ---
+
+## 10. 事件处理
+- 事件是用户与页面交互的方式，如点击、输入、滚动等。
+- 常用事件类型：
+	- 鼠标事件：`click`、`mouseover`、`mouseout`
+	- 键盘事件：`keydown`、`keyup`
+	- 表单事件：`submit`、`change`
+	- 窗口事件：`load`、`resize`
+- 事件监听器：使用 `addEventListener` 方法绑定事件处理函数。
+```js
+const btn = document.querySelector("#btn");
+btn.addEventListener("click", function () {
+	alert("按钮被点击了");
+});
+```
 
 # 前端学习路线（新手版）
 1. HTML：标签 + 语义化 + 表单
