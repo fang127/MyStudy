@@ -4,16 +4,16 @@ package tutorial.grpcdemo;
 
 service DemoService {
   // 1) Simple unary RPC.
-  rpc SayHello(HelloRequest) returns (HelloReply);
+  rpc SayHello(HelloRequest) returns (HelloReply); // 客户端发送一个名字和一个延迟时间，服务器等待指定的时间后返回一个问候消息和当前的Unix时间戳（毫秒）。
 
   // 2) Client streaming RPC.
-  rpc UploadNumbers(stream Number) returns (SumReply);
+  rpc UploadNumbers(stream Number) returns (SumReply); // 客户端发送一系列数字，服务器返回它们的总和和数量。
 
   // 3) Server streaming RPC.
-  rpc CountDown(CountDownRequest) returns (stream CountDownReply);
+  rpc CountDown(CountDownRequest) returns (stream CountDownReply); // 客户端发送一个起始数字和间隔时间，服务器每隔一段时间返回当前数字，直到数到0为止。
 
   // 4) Bidirectional streaming RPC.
-  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage); // 客户端和服务器可以同时发送和接收消息，形成一个实时的聊天系统。
 }
 
 message HelloRequest {

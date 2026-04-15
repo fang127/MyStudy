@@ -444,18 +444,23 @@ int main(int argc, char **argv) {
     auto channel = grpc::CreateCustomChannel(
         target, grpc::InsecureChannelCredentials(), args);
 
+    // 演示unary RPC
     AsyncUnaryClient unary_client(channel);
     unary_client.SendHello("alice", 50);
     unary_client.SendHello("bob", 0);
     unary_client.SendHello("charlie", 120);
+    // 丢弃掉第3个请求的响应，演示deadline超时的情况
     unary_client.DrainResponses(3);
 
+    // 演示client-streaming RPC
     AsyncClientStreamClient client_stream_client(channel);
     if (client_stream_client.RunDemo() != 0) return 1;
 
+    // 演示server-streaming RPC
     AsyncServerStreamClient server_stream_client(channel);
     if (server_stream_client.RunDemo() != 0) return 1;
 
+    // 演示bidirectional-streaming RPC
     AsyncBidiChatClient bidi_client(channel);
     return bidi_client.RunDemo();
 }

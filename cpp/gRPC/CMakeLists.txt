@@ -81,8 +81,10 @@ target_link_libraries(demo_proto PUBLIC protobuf::libprotobuf gRPC::grpc++ Threa
 # Insecure demos.
 add_executable(sync_server src/sync_server.cc)
 add_executable(sync_client src/sync_client.cc)
-add_executable(async_server src/async_server.cc)
-add_executable(async_client src/async_client.cc)
+add_executable(async_cq_server src/async_cq_server.cc)
+add_executable(async_cq_client src/async_cq_client.cc)
+add_executable(async_callback_server src/async_callback_server.cc)
+add_executable(async_callback_client src/async_callback_client.cc)
 
 # TLS/mTLS demos.
 add_executable(tls_server src/tls_server.cc)
@@ -90,8 +92,10 @@ add_executable(tls_client src/tls_client.cc)
 
 target_link_libraries(sync_server PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
 target_link_libraries(sync_client PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
-target_link_libraries(async_server PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
-target_link_libraries(async_client PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
+target_link_libraries(async_cq_server PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
+target_link_libraries(async_cq_client PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
+target_link_libraries(async_callback_server PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
+target_link_libraries(async_callback_client PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
 target_link_libraries(tls_server PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
 target_link_libraries(tls_client PRIVATE demo_proto gRPC::grpc++ Threads::Threads)
 

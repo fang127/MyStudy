@@ -6,12 +6,18 @@ This project contains teaching examples for gRPC C++:
 2. Client streaming mode
 3. Server streaming mode
 4. Bidirectional streaming mode
-5. Asynchronous full matrix with CompletionQueue state machines:
+5. Asynchronous full matrix with CompletionQueue state machines (CQ):
    - Async unary
    - Async client-stream
    - Async server-stream
    - Async bidirectional-stream
-6. TLS/mTLS secure channel examples (cert generation + client validation)
+6. Asynchronous callback API examples (Reactor):
+   - Callback unary
+   - Callback client-stream
+   - Callback server-stream
+   - Callback bidirectional-stream
+7. TLS/mTLS secure channel examples (cert generation + client validation)
+
 
 It also demonstrates:
 
@@ -25,8 +31,10 @@ It also demonstrates:
 - `proto/demo.proto`: service and message definitions
 - `src/sync_server.cc`: sync server implementing unary + 3 streaming RPCs
 - `src/sync_client.cc`: sync client invoking all four sync RPC modes
-- `src/async_server.cc`: async server implementing all 4 async RPC modes with CallData state machines
-- `src/async_client.cc`: async client implementing all 4 async RPC modes with CQ state machines
+- `src/async_cq_server.cc`: async server implementing all 4 async RPC modes with CallData state machines
+- `src/async_cq_client.cc`: async client implementing all 4 async RPC modes with CQ state machines
+- `src/async_callback_server.cc`: callback async server implementing all 4 RPC modes with Reactor API
+- `src/async_callback_client.cc`: callback async client implementing all 4 RPC modes with Reactor API
 - `src/tls_server.cc`: TLS/mTLS server sample
 - `src/tls_client.cc`: TLS/mTLS client sample with server cert validation
 - `cmake/generate_certs.cmake`: teaching script for CA/server/client cert generation
@@ -68,16 +76,28 @@ Terminal B (sync client):
 ./build/sync_client 127.0.0.1:50051
 ```
 
-Terminal C (async server, 4 async RPC modes):
+Terminal C (async CQ server, 4 async RPC modes):
 
 ```bash
-./build/async_server 0.0.0.0:50052
+./build/async_cq_server 0.0.0.0:50052
 ```
 
-Terminal D (async client, 4 async RPC modes):
+Terminal D (async CQ client, 4 async RPC modes):
 
 ```bash
-./build/async_client 127.0.0.1:50052
+./build/async_cq_client 127.0.0.1:50052
+```
+
+Terminal E (async callback server, 4 RPC modes):
+
+```bash
+./build/async_callback_server 0.0.0.0:50053
+```
+
+Terminal F (async callback client, 4 RPC modes):
+
+```bash
+./build/async_callback_client 127.0.0.1:50053
 ```
 
 ## Run - TLS/mTLS Examples
