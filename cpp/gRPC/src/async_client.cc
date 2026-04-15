@@ -9,8 +9,7 @@
 
 #include "demo.grpc.pb.h"
 
-namespace
-{
+namespace {
 
 using tutorial::grpcdemo::ChatMessage;
 using tutorial::grpcdemo::CountDownReply;
@@ -24,24 +23,19 @@ using tutorial::grpcdemo::SumReply;
 // -----------------------------
 // Async unary demo client
 // -----------------------------
-struct AsyncUnaryCall
-{
+struct AsyncUnaryCall {
     HelloReply reply;
     grpc::ClientContext context;
     grpc::Status status;
     std::unique_ptr<grpc::ClientAsyncResponseReader<HelloReply>> responder;
 };
 
-class AsyncUnaryClient
-{
+class AsyncUnaryClient {
 public:
     explicit AsyncUnaryClient(std::shared_ptr<grpc::Channel> channel)
-        : stub_(DemoService::NewStub(std::move(channel)))
-    {
-    }
+        : stub_(DemoService::NewStub(std::move(channel))) {}
 
-    void SendHello(const std::string &name, int delay_ms)
-    {
+    void SendHello(const std::string &name, int delay_ms) {
         auto *call = new AsyncUnaryCall;
         FillCommonMetadata(&call->context, "async-unary-client", 5000);
 
@@ -54,24 +48,19 @@ public:
                                 static_cast<void *>(call));
     }
 
-    void DrainResponses(int expected)
-    {
+    void DrainResponses(int expected) {
         int done = 0;
-        while (done < expected)
-        {
+        while (done < expected) {
             void *tag = nullptr;
             bool ok = false;
             if (!cq_.Next(&tag, &ok)) break;
 
             auto *call = static_cast<AsyncUnaryCall *>(tag);
-            if (ok && call->status.ok())
-            {
+            if (ok && call->status.ok()) {
                 std::cout << "[AsyncUnary] " << call->reply.message()
                           << ", server_unix_ms=" << call->reply.server_unix_ms()
                           << std::endl;
-            }
-            else
-            {
+            } else {
                 std::cout << "[AsyncUnary] failed: "
                           << call->status.error_code() << " "
                           << call->status.error_message() << std::endl;
@@ -85,8 +74,7 @@ public:
 private:
     static void FillCommonMetadata(grpc::ClientContext *context,
                                    const std::string &client_id,
-                                   int deadline_ms)
-    {
+                                   int deadline_ms) {
         context->AddMetadata("x-token", "demo-token");
         context->AddMetadata("x-client-id", client_id);
         context->set_deadline(std::chrono::system_clock::now() +
@@ -101,16 +89,12 @@ private:
 // Async client-stream demo client
 // UploadNumbers(stream Number) -> SumReply
 // --------------------------------------
-class AsyncClientStreamClient
-{
+class AsyncClientStreamClient {
 public:
     explicit AsyncClientStreamClient(std::shared_ptr<grpc::Channel> channel)
-        : stub_(DemoService::NewStub(std::move(channel)))
-    {
-    }
+        : stub_(DemoService::NewStub(std::move(channel))) {}
 
-    int RunDemo()
-    {
+    int RunDemo() {
         FillCommonMetadata(&context_, "async-client-stream-client", 8000);
 
         writer_ = stub_->PrepareAsyncUploadNumbers(&context_, &reply_, &cq_);
@@ -118,12 +102,10 @@ public:
 
         values_ = {1, 2, 3, 4, 5};
 
-        while (true)
-        {
+        while (true) {
             void *tag = nullptr;
             bool ok = false;
-            if (!cq_.Next(&tag, &ok))
-            {
+            if (!cq_.Next(&tag, &ok)) {
                 std::cerr << "[AsyncClientStream] completion queue closed "
                              "unexpectedly"
                           << std::endl;
@@ -132,10 +114,8 @@ public:
 
             const TagType type = FromTag(tag);
 
-            if (type == TagType::kStartCall)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kStartCall) {
+                if (!ok) {
                     std::cerr << "[AsyncClientStream] StartCall failed"
                               << std::endl;
                     return 1;
@@ -144,10 +124,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kWrite)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kWrite) {
+                if (!ok) {
                     std::cerr << "[AsyncClientStream] Write failed"
                               << std::endl;
                     return 1;
@@ -160,10 +138,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kWritesDone)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kWritesDone) {
+                if (!ok) {
                     std::cerr << "[AsyncClientStream] WritesDone failed"
                               << std::endl;
                     return 1;
@@ -172,10 +148,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kFinish)
-            {
-                if (!ok || !status_.ok())
-                {
+            if (type == TagType::kFinish) {
+                if (!ok || !status_.ok()) {
                     std::cout << "[AsyncClientStream] failed: "
                               << status_.error_code() << " "
                               << status_.error_message() << std::endl;
@@ -190,36 +164,31 @@ public:
     }
 
 private:
-    enum class TagType : std::intptr_t
-    {
+    enum class TagType : std::intptr_t {
         kStartCall = 1,
         kWrite = 2,
         kWritesDone = 3,
         kFinish = 4,
     };
 
-    static void *Tag(TagType t)
-    {
+    static void *Tag(TagType t) {
         return reinterpret_cast<void *>(static_cast<std::intptr_t>(t));
     }
 
-    static TagType FromTag(void *p)
-    {
+    static TagType FromTag(void *p) {
         return static_cast<TagType>(reinterpret_cast<std::intptr_t>(p));
     }
 
     static void FillCommonMetadata(grpc::ClientContext *context,
                                    const std::string &client_id,
-                                   int deadline_ms)
-    {
+                                   int deadline_ms) {
         context->AddMetadata("x-token", "demo-token");
         context->AddMetadata("x-client-id", client_id);
         context->set_deadline(std::chrono::system_clock::now() +
                               std::chrono::milliseconds(deadline_ms));
     }
 
-    void WriteNext()
-    {
+    void WriteNext() {
         write_msg_.set_value(values_.at(index_));
         ++index_;
         writer_->Write(write_msg_, Tag(TagType::kWrite));
@@ -240,16 +209,12 @@ private:
 // Async server-stream demo client
 // CountDown(request) -> stream CountDownReply
 // --------------------------------------
-class AsyncServerStreamClient
-{
+class AsyncServerStreamClient {
 public:
     explicit AsyncServerStreamClient(std::shared_ptr<grpc::Channel> channel)
-        : stub_(DemoService::NewStub(std::move(channel)))
-    {
-    }
+        : stub_(DemoService::NewStub(std::move(channel))) {}
 
-    int RunDemo()
-    {
+    int RunDemo() {
         FillCommonMetadata(&context_, "async-server-stream-client", 8000);
 
         request_.set_from(5);
@@ -258,12 +223,10 @@ public:
         reader_ = stub_->PrepareAsyncCountDown(&context_, request_, &cq_);
         reader_->StartCall(Tag(TagType::kStartCall));
 
-        while (true)
-        {
+        while (true) {
             void *tag = nullptr;
             bool ok = false;
-            if (!cq_.Next(&tag, &ok))
-            {
+            if (!cq_.Next(&tag, &ok)) {
                 std::cerr << "[AsyncServerStream] completion queue closed "
                              "unexpectedly"
                           << std::endl;
@@ -272,10 +235,8 @@ public:
 
             const TagType type = FromTag(tag);
 
-            if (type == TagType::kStartCall)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kStartCall) {
+                if (!ok) {
                     std::cerr << "[AsyncServerStream] StartCall failed"
                               << std::endl;
                     return 1;
@@ -284,10 +245,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kRead)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kRead) {
+                if (!ok) {
                     reader_->Finish(&status_, Tag(TagType::kFinish));
                     continue;
                 }
@@ -298,10 +257,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kFinish)
-            {
-                if (!status_.ok())
-                {
+            if (type == TagType::kFinish) {
+                if (!status_.ok()) {
                     std::cout << "[AsyncServerStream] failed: "
                               << status_.error_code() << " "
                               << status_.error_message() << std::endl;
@@ -315,27 +272,23 @@ public:
     }
 
 private:
-    enum class TagType : std::intptr_t
-    {
+    enum class TagType : std::intptr_t {
         kStartCall = 1,
         kRead = 2,
         kFinish = 3,
     };
 
-    static void *Tag(TagType t)
-    {
+    static void *Tag(TagType t) {
         return reinterpret_cast<void *>(static_cast<std::intptr_t>(t));
     }
 
-    static TagType FromTag(void *p)
-    {
+    static TagType FromTag(void *p) {
         return static_cast<TagType>(reinterpret_cast<std::intptr_t>(p));
     }
 
     static void FillCommonMetadata(grpc::ClientContext *context,
                                    const std::string &client_id,
-                                   int deadline_ms)
-    {
+                                   int deadline_ms) {
         context->AddMetadata("x-token", "demo-token");
         context->AddMetadata("x-client-id", client_id);
         context->set_deadline(std::chrono::system_clock::now() +
@@ -355,16 +308,12 @@ private:
 // Async bidirectional-stream demo client
 // Chat(stream ChatMessage) -> stream ChatMessage
 // --------------------------------------
-class AsyncBidiChatClient
-{
+class AsyncBidiChatClient {
 public:
     explicit AsyncBidiChatClient(std::shared_ptr<grpc::Channel> channel)
-        : stub_(DemoService::NewStub(std::move(channel)))
-    {
-    }
+        : stub_(DemoService::NewStub(std::move(channel))) {}
 
-    int RunDemo()
-    {
+    int RunDemo() {
         context_.AddMetadata("x-token", "demo-token");
         context_.AddMetadata("x-client-id", "async-bidi-client");
         context_.set_deadline(std::chrono::system_clock::now() +
@@ -375,12 +324,10 @@ public:
         stream_ = stub_->PrepareAsyncChat(&context_, &cq_);
         stream_->StartCall(Tag(TagType::kStartCall));
 
-        while (true)
-        {
+        while (true) {
             void *tag = nullptr;
             bool ok = false;
-            if (!cq_.Next(&tag, &ok))
-            {
+            if (!cq_.Next(&tag, &ok)) {
                 std::cerr << "[AsyncBidi] completion queue closed unexpectedly"
                           << std::endl;
                 return 1;
@@ -388,10 +335,8 @@ public:
 
             const TagType type = FromTag(tag);
 
-            if (type == TagType::kStartCall)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kStartCall) {
+                if (!ok) {
                     std::cerr << "[AsyncBidi] StartCall failed" << std::endl;
                     return 1;
                 }
@@ -399,10 +344,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kWrite)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kWrite) {
+                if (!ok) {
                     std::cerr << "[AsyncBidi] Write failed" << std::endl;
                     return 1;
                 }
@@ -410,10 +353,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kRead)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kRead) {
+                if (!ok) {
                     stream_->Finish(&final_status_, Tag(TagType::kFinish));
                     continue;
                 }
@@ -429,10 +370,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kWritesDone)
-            {
-                if (!ok)
-                {
+            if (type == TagType::kWritesDone) {
+                if (!ok) {
                     std::cerr << "[AsyncBidi] WritesDone failed" << std::endl;
                     return 1;
                 }
@@ -440,10 +379,8 @@ public:
                 continue;
             }
 
-            if (type == TagType::kFinish)
-            {
-                if (final_status_.ok())
-                {
+            if (type == TagType::kFinish) {
+                if (final_status_.ok()) {
                     std::cout << "[AsyncBidi] finished OK" << std::endl;
                     return 0;
                 }
@@ -456,8 +393,7 @@ public:
     }
 
 private:
-    enum class TagType : std::intptr_t
-    {
+    enum class TagType : std::intptr_t {
         kStartCall = 1,
         kWrite = 2,
         kRead = 3,
@@ -465,18 +401,15 @@ private:
         kFinish = 5,
     };
 
-    static void *Tag(TagType t)
-    {
+    static void *Tag(TagType t) {
         return reinterpret_cast<void *>(static_cast<std::intptr_t>(t));
     }
 
-    static TagType FromTag(void *p)
-    {
+    static TagType FromTag(void *p) {
         return static_cast<TagType>(reinterpret_cast<std::intptr_t>(p));
     }
 
-    void WriteNext()
-    {
+    void WriteNext() {
         write_msg_.set_user("async-client");
         write_msg_.set_text(messages_.at(send_index_));
         write_msg_.set_unix_ms(
@@ -501,8 +434,7 @@ private:
 
 } // namespace
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     const std::string target = argc > 1 ? argv[1] : "127.0.0.1:50052";
 
     grpc::ChannelArguments args;

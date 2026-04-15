@@ -9,8 +9,7 @@
 
 #include "demo.grpc.pb.h"
 
-namespace
-{
+namespace {
 
 using tutorial::grpcdemo::ChatMessage;
 using tutorial::grpcdemo::CountDownReply;
@@ -24,13 +23,11 @@ using tutorial::grpcdemo::SumReply;
 constexpr const char *kTokenKey = "x-token";
 constexpr const char *kTokenValue = "demo-token";
 
-class AsyncServer final
-{
+class AsyncServer final {
 public:
     explicit AsyncServer(std::string address) : address_(std::move(address)) {}
 
-    void Run()
-    {
+    void Run() {
         grpc::ServerBuilder builder;
         builder.AddListeningPort(address_, grpc::InsecureServerCredentials());
         builder.RegisterService(&service_);
@@ -50,33 +47,27 @@ public:
 
 private:
     // Base completion-queue tag interface.
-    class ITag
-    {
+    class ITag {
     public:
         virtual ~ITag() = default;
         virtual void OnEvent(bool ok) = 0;
     };
 
     // 1) Unary async handler: SayHello.
-    class AsyncUnaryCall final : public ITag
-    {
+    class AsyncUnaryCall final : public ITag {
     public:
         AsyncUnaryCall(DemoService::AsyncService *service,
                        grpc::ServerCompletionQueue *cq)
             : service_(service),
               cq_(cq),
               responder_(&ctx_),
-              state_(State::kCreate)
-        {
+              state_(State::kCreate) {
             RequestRpc();
         }
 
-        void OnEvent(bool ok) override
-        {
-            if (state_ == State::kCreate)
-            {
-                if (!ok)
-                {
+        void OnEvent(bool ok) override {
+            if (state_ == State::kCreate) {
+                if (!ok) {
                     delete this;
                     return;
                 }
@@ -84,8 +75,7 @@ private:
                 new AsyncUnaryCall(service_, cq_);
 
                 const auto auth = CheckAuth(ctx_);
-                if (!auth.ok())
-                {
+                if (!auth.ok()) {
                     state_ = State::kFinish;
                     responder_.Finish(reply_, auth, this);
                     return;
@@ -107,14 +97,9 @@ private:
         }
 
     private:
-        enum class State
-        {
-            kCreate,
-            kFinish
-        };
+        enum class State { kCreate, kFinish };
 
-        void RequestRpc()
-        {
+        void RequestRpc() {
             service_->RequestSayHello(&ctx_, &request_, &responder_, cq_, cq_,
                                       this);
         }
@@ -129,22 +114,20 @@ private:
     };
 
     // 2) Client-stream async handler: UploadNumbers.
-    class AsyncClientStreamCall final : public ITag
-    {
+    class AsyncClientStreamCall final : public ITag {
     public:
         AsyncClientStreamCall(DemoService::AsyncService *service,
                               grpc::ServerCompletionQueue *cq)
-            : service_(service), cq_(cq), reader_(&ctx_), state_(State::kCreate)
-        {
+            : service_(service),
+              cq_(cq),
+              reader_(&ctx_),
+              state_(State::kCreate) {
             RequestRpc();
         }
 
-        void OnEvent(bool ok) override
-        {
-            if (state_ == State::kCreate)
-            {
-                if (!ok)
-                {
+        void OnEvent(bool ok) override {
+            if (state_ == State::kCreate) {
+                if (!ok) {
                     delete this;
                     return;
                 }
@@ -152,8 +135,7 @@ private:
                 new AsyncClientStreamCall(service_, cq_);
 
                 const auto auth = CheckAuth(ctx_);
-                if (!auth.ok())
-                {
+                if (!auth.ok()) {
                     state_ = State::kFinish;
                     reader_.Finish(reply_, auth, this);
                     return;
@@ -164,10 +146,8 @@ private:
                 return;
             }
 
-            if (state_ == State::kRead)
-            {
-                if (!ok)
-                {
+            if (state_ == State::kRead) {
+                if (!ok) {
                     reply_.set_sum(sum_);
                     reply_.set_count(count_);
                     state_ = State::kFinish;
@@ -185,15 +165,9 @@ private:
         }
 
     private:
-        enum class State
-        {
-            kCreate,
-            kRead,
-            kFinish
-        };
+        enum class State { kCreate, kRead, kFinish };
 
-        void RequestRpc()
-        {
+        void RequestRpc() {
             service_->RequestUploadNumbers(&ctx_, &reader_, cq_, cq_, this);
         }
 
@@ -209,22 +183,20 @@ private:
     };
 
     // 3) Server-stream async handler: CountDown.
-    class AsyncServerStreamCall final : public ITag
-    {
+    class AsyncServerStreamCall final : public ITag {
     public:
         AsyncServerStreamCall(DemoService::AsyncService *service,
                               grpc::ServerCompletionQueue *cq)
-            : service_(service), cq_(cq), writer_(&ctx_), state_(State::kCreate)
-        {
+            : service_(service),
+              cq_(cq),
+              writer_(&ctx_),
+              state_(State::kCreate) {
             RequestRpc();
         }
 
-        void OnEvent(bool ok) override
-        {
-            if (state_ == State::kCreate)
-            {
-                if (!ok)
-                {
+        void OnEvent(bool ok) override {
+            if (state_ == State::kCreate) {
+                if (!ok) {
                     delete this;
                     return;
                 }
@@ -232,8 +204,7 @@ private:
                 new AsyncServerStreamCall(service_, cq_);
 
                 const auto auth = CheckAuth(ctx_);
-                if (!auth.ok())
-                {
+                if (!auth.ok()) {
                     state_ = State::kFinish;
                     writer_.Finish(auth, this);
                     return;
@@ -248,17 +219,14 @@ private:
                 return;
             }
 
-            if (state_ == State::kWrite)
-            {
-                if (!ok)
-                {
+            if (state_ == State::kWrite) {
+                if (!ok) {
                     state_ = State::kFinish;
                     writer_.Finish(grpc::Status::OK, this);
                     return;
                 }
 
-                if (current_ <= 0)
-                {
+                if (current_ <= 0) {
                     state_ = State::kFinish;
                     writer_.Finish(grpc::Status::OK, this);
                     return;
@@ -276,21 +244,14 @@ private:
         }
 
     private:
-        enum class State
-        {
-            kCreate,
-            kWrite,
-            kFinish
-        };
+        enum class State { kCreate, kWrite, kFinish };
 
-        void RequestRpc()
-        {
+        void RequestRpc() {
             service_->RequestCountDown(&ctx_, &request_, &writer_, cq_, cq_,
                                        this);
         }
 
-        void WriteOne()
-        {
+        void WriteOne() {
             out_.set_current(current_);
             writer_.Write(out_, this);
         }
@@ -307,22 +268,20 @@ private:
     };
 
     // 4) Bidirectional-stream async handler: Chat.
-    class AsyncBidiChatCall final : public ITag
-    {
+    class AsyncBidiChatCall final : public ITag {
     public:
         AsyncBidiChatCall(DemoService::AsyncService *service,
                           grpc::ServerCompletionQueue *cq)
-            : service_(service), cq_(cq), stream_(&ctx_), state_(State::kCreate)
-        {
+            : service_(service),
+              cq_(cq),
+              stream_(&ctx_),
+              state_(State::kCreate) {
             RequestRpc();
         }
 
-        void OnEvent(bool ok) override
-        {
-            if (state_ == State::kCreate)
-            {
-                if (!ok)
-                {
+        void OnEvent(bool ok) override {
+            if (state_ == State::kCreate) {
+                if (!ok) {
                     delete this;
                     return;
                 }
@@ -330,8 +289,7 @@ private:
                 new AsyncBidiChatCall(service_, cq_);
 
                 const auto auth = CheckAuth(ctx_);
-                if (!auth.ok())
-                {
+                if (!auth.ok()) {
                     state_ = State::kFinish;
                     stream_.Finish(auth, this);
                     return;
@@ -342,10 +300,8 @@ private:
                 return;
             }
 
-            if (state_ == State::kRead)
-            {
-                if (!ok)
-                {
+            if (state_ == State::kRead) {
+                if (!ok) {
                     state_ = State::kFinish;
                     stream_.Finish(grpc::Status::OK, this);
                     return;
@@ -360,10 +316,8 @@ private:
                 return;
             }
 
-            if (state_ == State::kWrite)
-            {
-                if (!ok)
-                {
+            if (state_ == State::kWrite) {
+                if (!ok) {
                     state_ = State::kFinish;
                     stream_.Finish(grpc::Status::OK, this);
                     return;
@@ -378,16 +332,9 @@ private:
         }
 
     private:
-        enum class State
-        {
-            kCreate,
-            kRead,
-            kWrite,
-            kFinish
-        };
+        enum class State { kCreate, kRead, kWrite, kFinish };
 
-        void RequestRpc()
-        {
+        void RequestRpc() {
             service_->RequestChat(&ctx_, &stream_, cq_, cq_, this);
         }
 
@@ -400,19 +347,16 @@ private:
         State state_;
     };
 
-    static grpc::Status CheckAuth(const grpc::ServerContext &context)
-    {
+    static grpc::Status CheckAuth(const grpc::ServerContext &context) {
         const auto &md = context.client_metadata();
         const auto it = md.find(kTokenKey);
-        if (it == md.end())
-        {
+        if (it == md.end()) {
             return grpc::Status(grpc::StatusCode::UNAUTHENTICATED,
                                 "missing x-token metadata");
         }
 
         const std::string token(it->second.data(), it->second.length());
-        if (token != kTokenValue)
-        {
+        if (token != kTokenValue) {
             return grpc::Status(grpc::StatusCode::PERMISSION_DENIED,
                                 "invalid x-token value");
         }
@@ -420,15 +364,13 @@ private:
         return grpc::Status::OK;
     }
 
-    static int64_t NowMs()
-    {
+    static int64_t NowMs() {
         return std::chrono::duration_cast<std::chrono::milliseconds>(
                    std::chrono::system_clock::now().time_since_epoch())
             .count();
     }
 
-    void HandleRpcs()
-    {
+    void HandleRpcs() {
         void *tag = nullptr;
         bool ok = false;
         while (cq_->Next(&tag, &ok)) static_cast<ITag *>(tag)->OnEvent(ok);
@@ -442,8 +384,7 @@ private:
 
 } // namespace
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     const std::string server_addr = argc > 1 ? argv[1] : "0.0.0.0:50052";
     AsyncServer server(server_addr);
     server.Run();

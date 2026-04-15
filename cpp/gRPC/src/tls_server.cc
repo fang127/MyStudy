@@ -8,15 +8,13 @@
 
 #include "demo.grpc.pb.h"
 
-namespace
-{
+namespace {
 
 using tutorial::grpcdemo::DemoService;
 using tutorial::grpcdemo::HelloReply;
 using tutorial::grpcdemo::HelloRequest;
 
-std::string ReadAll(const std::string &path)
-{
+std::string ReadAll(const std::string &path) {
     std::ifstream fin(path, std::ios::binary);
     if (!fin) throw std::runtime_error("Cannot open file: " + path);
     std::ostringstream ss;
@@ -24,23 +22,19 @@ std::string ReadAll(const std::string &path)
     return ss.str();
 }
 
-class TlsDemoService final : public DemoService::Service
-{
+class TlsDemoService final : public DemoService::Service {
 public:
     grpc::Status SayHello(grpc::ServerContext *context,
                           const HelloRequest *request,
-                          HelloReply *reply) override
-    {
+                          HelloReply *reply) override {
         const auto it = context->client_metadata().find("x-token");
-        if (it == context->client_metadata().end())
-        {
+        if (it == context->client_metadata().end()) {
             return grpc::Status(grpc::StatusCode::UNAUTHENTICATED,
                                 "missing x-token metadata");
         }
 
         const std::string token(it->second.data(), it->second.length());
-        if (token != "demo-token")
-        {
+        if (token != "demo-token") {
             return grpc::Status(grpc::StatusCode::PERMISSION_DENIED,
                                 "invalid token");
         }
@@ -56,21 +50,17 @@ public:
 };
 
 grpc::SslServerCredentialsOptions BuildServerSslOptions(
-    const std::string &cert_dir, bool mtls_enabled)
-{
+    const std::string &cert_dir, bool mtls_enabled) {
     grpc::SslServerCredentialsOptions opts;
     grpc::SslServerCredentialsOptions::PemKeyCertPair keycert;
     keycert.private_key = ReadAll(cert_dir + "/server.key");
     keycert.cert_chain = ReadAll(cert_dir + "/server.crt");
     opts.pem_key_cert_pairs.push_back(keycert);
     opts.pem_root_certs = ReadAll(cert_dir + "/ca.crt");
-    if (mtls_enabled)
-    {
+    if (mtls_enabled) {
         opts.client_certificate_request =
             GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY;
-    }
-    else
-    {
+    } else {
         opts.client_certificate_request =
             GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE;
     }
@@ -80,16 +70,14 @@ grpc::SslServerCredentialsOptions BuildServerSslOptions(
 
 } // namespace
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     const std::string server_addr = argc > 1 ? argv[1] : "0.0.0.0:50061";
     const std::string mode = argc > 2 ? argv[2] : "tls";
     const std::string cert_dir = argc > 3 ? argv[3] : "build/certs";
 
     const bool mtls = (mode == "mtls");
 
-    try
-    {
+    try {
         TlsDemoService service;
         grpc::ServerBuilder builder;
 
@@ -103,9 +91,7 @@ int main(int argc, char **argv)
                   << ", mode=" << (mtls ? "mTLS" : "TLS")
                   << ", cert_dir=" << cert_dir << std::endl;
         server->Wait();
-    }
-    catch (const std::exception &ex)
-    {
+    } catch (const std::exception &ex) {
         std::cerr << "[tls_server] startup failed: " << ex.what() << std::endl;
         return 1;
     }
