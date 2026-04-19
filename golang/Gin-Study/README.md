@@ -55,7 +55,8 @@ go get -u github.com/gin-gonic/gin
 ```go
 // 1. 初始化
 gin.SetMode(gin.ReleaseMode)
-r := gin.Default()
+r := gin.Default() // 包含Logger和Recovery中间件的Gin实例
+r := gin.New() // 不包含任何中间件的Gin实例
 // 2. 挂载路由
 r.GET("/index", func(c *gin.Context) {
 })
@@ -64,7 +65,14 @@ r.Run(":8080")
 ```
 
 - 可以使用`gin.SetMode(gin.ReleaseMode)`来设置Gin的运行模式，默认为`debug`模式，适用于开发环境。`release`模式适用于生产环境，可以提高性能。
+
 - `gin.Default()`会返回一个默认的Gin引擎实例，包含了Logger和Recovery中间件。
+
+	- Logger — 将请求日志写入标准输出（方法、路径、状态码、延迟）。
+	
+	- Recovery — 从处理函数中的任何 panic 恢复并返回 500 响应，防止服务器崩溃。
+
+- `gin.New()`会返回一个没有任何中间件的Gin引擎实例，适用于需要自定义中间件的场景。
 
 ### 2. 响应JSON数据
 
@@ -245,54 +253,6 @@ r.POST("/index", func(ctx *gin.Context) {
 
 ### 11. binding绑定数据
 
-```go
-// 1. 查询参数
-r.GET("/index", func(c *gin.Context) {
-	type User struct {
-		Name string `form:"name"`
-		Age  int    `form:"age"`
-	}
-	var user User
-	err := c.ShouldBindQuery(&user)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"name": user.Name, "age": user.Age})
-})
-// 2. 路径参数
-r.GET("/user/:id/:name", func(c *gin.Context) {
-	type User struct {
-		ID   string `uri:"id"`
-		Name string `uri:"name"`
-	}
-	var user User
-	err := c.ShouldBindUri(&user)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"id": user.ID, "name": user.Name})
-})
-// 3. 表单参数
-r.POST("/form", func(c *gin.Context) {
-	type User struct {
-		Name string `form:"name"`
-		Age  int    `form:"age"`
-	}
-	var user User
-	// ShouldBind 会根据 HTTP 方法和 Content-Type 请求头自动选择绑定引擎
-	// 注意：ShouldBind会根据请求的Content-Type自动选择绑定方式
-	// 如果Content-Type是application/x-www-form-urlencoded或multipartform-data，则绑定表单参数
-	err := c.ShouldBind(&user)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"name": user.Name, "age": user.Age})
-})
-```
-
 Gin 提供了强大的数据绑定功能，可以将请求中的数据自动绑定到结构体中。根据不同的请求类型和参数来源，Gin 提供了不同的绑定方法：
 
 - 类型：Must bind
@@ -336,4 +296,376 @@ type Login struct {
   Password string `form:"password" json:"password" xml:"password" binding:"required"`
 }
 ```
+
+### 12. binding绑定数据的验证
+
+Gin 除了内置的验证器（如 required、email、min、max），你还可以注册自己的自定义验证函数。
+
+1. 内置验证器
+```go
+type User struct {
+	Username string `form:"username" binding:"required,email"`
+	Age      int    `form:"age" binding:"required,min=18,max=60"`
+}
+```
+
+- required：表示该字段是必填的，如果请求中没有该字段或者该字段的值为空字符串，则会返回错误。
+
+- email：表示该字段必须是一个有效的电子邮件地址，如果请求中该字段的值不是一个有效的电子邮件地址，则会返回错误。
+
+- min=18：表示该字段的值必须大于或等于18，如果请求中该字段的值小于18，则会返回错误。
+
+- max=60：表示该字段的值必须小于或等于60，如果请求中该字段的值大于60，则会返回错误。
+
+- eq=18：表示该字段的值必须等于18，如果请求中该字段的值不等于18，则会返回错误。
+
+- ne=18：表示该字段的值必须不等于18，如果请求中该字段的值等于18，则会返回错误。
+
+- gt=18：表示该字段的值必须大于18，如果请求中该字段的值小于或等于18，则会返回错误。
+
+- lt=60：表示该字段的值必须小于60，如果请求中该字段的值大于或等于60，则会返回错误。
+
+- eqfield=Age：表示该字段的值必须等于另一个字段Age的值，如果请求中该字段的值不等于Age字段的值，则会返回错误。
+
+> 这些验证器可以组合使用，例如：`binding:"required,email,min=18,max=60"` 表示该字段是必填的，必须是一个有效的电子邮件地址，并且值必须在18到60之间。
+
+2. 自定义验证函数
+```go
+type User struct {
+	Username string `form:"username" binding:"required,checkUsername"`
+}
+
+// 定义一个自定义验证函数
+func checkUsername(fl validator.FieldLevel) bool {
+	username := fl.Field().String()
+	// 这里可以添加你自己的验证逻辑，例如检查用户名是否符合某个模式
+	return username == "admin" // 仅允许用户名为 "admin"
+}
+```
+
+### 13. binding绑定数据的验证错误处理（中文）
+
+```go
+var trans ut.Translator // 翻译器
+
+func init() {
+	// 1. 创建通用翻译器，默认语言为中文
+	uni := ut.New(zh.New())
+	// 2. 获取中文翻译器实例
+	trans, _ = uni.GetTranslator("zh")
+	// 3. 获取Gin内置的验证器引擎，并做类型断言
+	v, ok := binding.Validator.Engine().(*validator.Validate)
+	// 4. 如果类型断言成功，注册中文默认翻译
+	if ok {
+		_ = zh_translations.RegisterDefaultTranslations(v, trans)
+	}
+}
+
+type User struct {
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
+}
+
+// ValidateErr 用于验证错误处理，将错误信息翻译成中文并返回
+func ValidateErr(err error) string {
+	// 1. 将错误类型断言为validator.ValidationErrors
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		return err.Error()
+	}
+	// 2. 遍历错误列表，翻译每个错误信息，并将它们连接成一个字符串返回
+	lists := make([]string, 0)
+	for _, e := range errs {
+		lists = append(lists, e.Translate(trans))
+	}
+	return strings.Join(lists, ";")
+}
+```
+
+```go
+r.POST("/users", func(ctx *gin.Context) {
+	var user User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+	
+	errMsg := ValidateErr(err)
+	
+	ctx.JSON(400, gin.H{"errors": errMsg})
+	
+	return
+	
+	}
+})
+```
+
+在这个示例中，我们使用了 `go-playground/validator` 包来进行数据验证，并使用 `go-playground/universal-translator` 包来进行错误信息的翻译。我们在 `init` 函数中设置了中文翻译器，并注册了默认的中文翻译。然后，在 `ValidateErr` 函数中，我们将验证错误转换为中文错误信息，并返回给客户端。
+
+```go
+func init() {
+	// 1. 创建通用翻译器，默认语言为中文
+	uni := ut.New(zh.New())
+	// 2. 获取中文翻译器实例
+	trans, _ = uni.GetTranslator("zh")
+	// 3. 获取Gin内置的验证器引擎，并做类型断言
+	v, ok := binding.Validator.Engine().(*validator.Validate)
+	// 4. 如果类型断言成功，注册中文默认翻译
+	if ok {
+		_ = zh_translations.RegisterDefaultTranslations(v, trans)
+	}
+
+	// 5. 注册一个函数，获取结构体字段的标签作为翻译的字段名
+	v.RegisterTagNameFunc(func(field reflect.StructField) string {
+		label := field.Tag.Get("label")
+		if label == "" {
+			return field.Name
+		}
+		return label
+	})
+}
+```
+
+- 在 `init` 函数中，我们还可以注册了一个函数 `RegisterTagNameFunc`，用于获取结构体字段的标签作为翻译的字段名。这样，在定义结构体时，我们可以使用 `label` 标签来指定字段的中文名称
+
+```go
+func init() {
+	// 1. 创建通用翻译器，默认语言为中文
+	uni := ut.New(zh.New())
+	// 2. 获取中文翻译器实例
+	trans, _ = uni.GetTranslator("zh")
+	// 3. 获取Gin内置的验证器引擎，并做类型断言
+	v, ok := binding.Validator.Engine().(*validator.Validate)
+	// 4. 如果类型断言成功，注册中文默认翻译
+	if ok {
+		_ = zh_translations.RegisterDefaultTranslations(v, trans)
+	}
+
+	// 5. 注册一个函数，获取结构体字段的标签作为翻译的字段名
+	v.RegisterTagNameFunc(func(field reflect.StructField) string {
+		label := field.Tag.Get("label")
+		if label == "" {
+			label = field.Name
+		}
+
+		name := field.Tag.Get("json")
+		if name == "" {
+			name = field.Name
+		}
+		return fmt.Sprintf("%s---%s", name, label)
+	})
+}
+```
+
+- 在 `RegisterTagNameFunc` 函数中，我们还可以获取结构体字段的 `json` 标签作为翻译的字段名的一部分，这样在错误信息中就可以同时显示字段的 JSON 名称和标签名称，格式为 `json标签---label标签`，例如：`name---用户名`。这样可以更清晰地告诉用户哪个字段出现了错误。也可以处理为 `json标签:label标签` 的格式，例如：`name:用户名`，方便前端开发人员根据 JSON 标签来定位错误字段。
+
+```go
+// 6. 自定义验证规则和翻译
+	// fip是一个自定义的验证标签，尽量不要与内置标签冲突
+v.RegisterValidation("fip", func(fl validator.FieldLevel) bool {
+	fmt.Println("Field(): ", fl.Field())
+	fmt.Println("FieldName(): ", fl.FieldName())
+	fmt.Println("StructFieldName(): ", fl.StructFieldName())
+	fmt.Println("Parent(): ", fl.Parent())
+	fmt.Println("Top(): ", fl.Top())
+	fmt.Println("Param(): ", fl.Param())
+	ip, ok := fl.Field().Interface().(string)
+	if ok && ip != "" {
+		// 这里可以添加自定义的IP地址验证逻辑，例如检查是否为特定的IP地址
+		ipObj := net.ParseIP(ip)
+		// 如果解析成功，说明是一个有效的IP地址，可以进一步检查是否与参数匹配
+		if ipObj != nil {
+			return ip == fl.Param()
+		}
+	}
+	return true // 如果字段不是字符串类型或者为空，则不进行验证，直接返回true
+})
+
+type User struct {
+	Name  string `json:"name" binding:"required" label:"用户名"`
+	Ip    string `json:"ip" binding:"fip=1234" label:"IP地址"`
+	Email string `json:"email" binding:"required,email" label:"邮箱"`
+}
+```
+
+- 在 `init` 函数中，我们还可以注册一个自定义的验证规则，例如 `fip`，用于验证 IP 地址。这个验证函数会检查字段的值是否是一个有效的 IP 地址，并且是否与指定的参数匹配。你可以根据自己的需求来实现具体的验证逻辑。
+
+### 14. 路由分组
+
+```go
+func main() {
+	r := gin.Default()
+	// r.POST() // 创建资源
+	// r.GET() // 获取资源
+	// r.PUT() // 更新资源
+	// r.DELETE() // 删除资源
+	// r.PATCH() // 更新资源的一部分
+	// r.ANY() // 支持所有请求方法
+
+	// 路由分组
+	// 可以将相关的路由分组在一起，方便管理和维护
+	// 例如：用户相关的路由可以分组在一起，订单相关的路由可以分组在一起
+	// 这样可以提高代码的可读性和可维护性
+	apiGroup := r.Group("api")
+	UserGroup(apiGroup)
+
+	r.Run(":8080")
+}
+
+func UserGroup(r *gin.RouterGroup) {
+	r.GET("/users", UserView)    // 查询用户列表
+	r.POST("/users", UserView)   // 创建用户
+	r.DELETE("/users", UserView) // 删除用户
+	r.PUT("/users", UserView)    // 更新用户
+}
+
+func UserView(c *gin.Context) {
+	path := c.Request.URL
+	c.JSON(200, gin.H{
+		"path":   path,
+		"method": c.Request.Method,
+	})
+}
+```
+
+- 通过 `r.Group("api")` 创建一个路由分组，所有在这个分组下定义的路由都会以 `/api` 作为前缀。
+
+- 通过 `UserGroup(apiGroup)` 将用户相关的路由定义在 `UserGroup` 函数中，这样可以将相关的路由分组在一起，方便管理和维护。
+
+- 优点
+
+	- 可以将相关的路由分组在一起，方便管理和维护。
+	
+	- 可以为分组设置公共的中间件，例如身份验证、日志记录等，这样就不需要在每个路由上都设置一次。
+	
+	- 可以提高代码的可读性和可维护性。
+	
+	- 可以创建同名的路由，由同名路由可以使用不同的函数来处理不同的请求方法，为不同的请求方法提供不同的处理逻辑，或者提供不同的中间件。
+
+### 15. 中间件
+
+**中间件是一个函数，可以在请求处理过程中执行一些操作，例如：日志记录、身份验证、跨域处理等。**
+
+- Gin 提供了内置的中间件，例如：Logger、Recovery、Cors等，也支持自定义中间件。
+
+```go
+func Home(c *gin.Context) {
+	fmt.Println("Home")
+	c.String(200, "Home")
+}
+
+func Middleware1(c *gin.Context) {
+	fmt.Println("Middleware1 before")
+	c.Next()
+	fmt.Println("Middleware1 after")
+}
+
+func Middleware2(c *gin.Context) {
+	fmt.Println("Middleware2 before")
+	c.Next()
+	// c.Abort()                        // 如果调用了 c.Abort()，后续的中间件和处理函数将不会被执行，但 Middleware1 的响应部分和 Middleware2 的响应部分仍然会被执行
+	fmt.Println("Middleware2 after") // 如果调用了 c.Abort()，这行代码将仍然执行
+}
+
+func GlobalMiddleware(c *gin.Context) {
+	fmt.Println("GlobalMiddleware before")
+	c.Next()
+	fmt.Println("GlobalMiddleware after")
+}
+
+func MiddlewareWithData(c *gin.Context) {
+	c.Set("key", "value") // 在中间件中设置数据
+	c.Next()
+}
+
+func MiddlewareGetData(c *gin.Context) {
+	value, exists := c.Get("key") // 在中间件中获取数据
+	if exists {
+		fmt.Println("Value from MiddlewareWithData:", value)
+	} else {
+		fmt.Println("Key not found in context")
+	}
+	c.Next()
+}
+
+func main() {
+	r := gin.Default()
+
+	// 全局中间件：对所有路由生效
+	// 全局中间件会在每个请求开始时执行，并在请求结束时执行，可以用于日志记录、错误处理、认证等功能
+	// 全局中间件优先于局部中间件执行，因为它们在路由处理之前被注册
+	r.Use(GlobalMiddleware)
+
+	// 先走 Middleware1 请求部分，再走 Middleware2 请求部分，最后走 Home，然后依次走 Middleware2 响应部分和 Middleware1 响应部分
+	// 通过 c.Next() 来控制中间件的执行顺序
+	// 局部中间件：只对特定的路由生效
+	r.GET("/", Middleware1, Middleware2, Home)
+
+	// 中间件传递数据：可以通过 c.Set() 和 c.Get() 来在中间件之间传递数据
+	r.GET("/data", MiddlewareWithData, MiddlewareGetData, func(c *gin.Context) {
+		c.String(200, "Data route")
+	})
+
+	r.Run(":8080")
+}
+```
+
+- 执行顺序： 中间件函数按注册顺序执行。当中间件调用 `c.Next()` 时，它将控制权传递给下一个中间件（或最终处理函数），然后在 `c.Next()` 返回后继续执行。这创建了一个类似栈的（LIFO）模式——第一个注册的中间件最先开始但最后结束。如果中间件不调用 `c.Next()`，后续的中间件和处理函数将被跳过（这对于使用 `c.Abort()` 短路请求很有用）。
+
+- 通过 `c.Next()` 来控制中间件的执行顺序，如果不调用 `c.Next()`，则后续的中间件和处理函数将不会被执行。
+
+- `c.Abort()` 可以中止请求的处理，后续的中间件和处理函数将不会被执行。
+
+- `c.Set()` 和 `c.Get()` 可以在中间件之间传递数据，`c.Set("key", "value")` 用于设置数据，`c.Get("key")` 用于获取数据。注意：数据在中间件的链路中是共享的，因此在一个中间件中设置的数据可以在后续的中间件和处理函数流程中获取到。
+
+- `r.Use()` 用于注册全局中间件，`group.Use()` 用于注册分组中间件，`r.GET(...)` 用于注册单个路由中间件。
+
+```go
+// 1. Global -- applies to all routes
+router := gin.New()
+router.Use(Logger(), Recovery())
+
+// 2. Group -- applies to all routes in the group
+v1 := router.Group("/v1")
+v1.Use(AuthRequired())
+{
+  v1.GET("/users", listUsers)
+}
+
+// 3. Per-route -- applies to a single route
+router.GET("/benchmark", BenchmarkMiddleware(), benchHandler)
+```
+
+- 全局中间件如果有多个，执行顺序是按照定义的顺序来执行的，先定义的中间件先执行。
+
+- 中间件可以在全局范围内使用，也可以在路由分组范围内使用，还可以在单个路由范围内使用，根据实际需求来选择合适的范围。
+
+### 16. RESTFul API设计原则
+
+1. 使用HTTP方法来表示操作类型，例如：GET用于查询资源，POST用于创建资源，PUT用于更新资源，DELETE用于删除资源，PATCH用于更新资源的一部分。
+	
+2. 使用URL路径来表示资源，例如：/users表示用户资源，/orders表示订单资源。
+	
+3. 使用状态码来表示响应结果，例如：200表示成功，400表示请求错误，404表示资源未找到，500表示服务器错误。
+	
+4. 使用JSON格式来表示响应数据，例如：{"name": "Alice", "age": 30}。
+
+5. 使用名词的复数来表示路由
+
+
+```go
+// 没有遵循RESTFul API设计原则
+/api/user/create
+/api/user_create
+/api/users/add
+/api/add_user
+
+// 遵循RESTFul API设计原则
+GET /api/users // 查询用户列表
+POST /api/users // 创建用户
+GET /api/users/123 // 查询用户详情
+PUT /api/users/123 // 更新用户
+DELETE /api/users/123 // 删除用户
+```
+
+- 遵循RESTFul API设计原则可以提高API的可读性和可维护性，使得API更符合HTTP协议的规范，方便开发人员理解和使用。同时，遵循RESTFul API设计原则也有助于提高API的性能和安全性，因为它可以更好地利用HTTP协议的特性来处理请求和响应。
+
+- 但是，RESTFul API设计原则并不是强制性的，只是一个设计规范，具体的API设计还需要根据实际需求和场景来进行调整和优化。
 

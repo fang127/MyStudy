@@ -52,5 +52,35 @@ func main() {
 		c.JSON(200, gin.H{"name": user.Name, "age": user.Age})
 	})
 
+	// 4. JSON 参数
+	r.POST("/json", func(c *gin.Context) {
+		type User struct {
+			Name string `json:"name"`
+			Age  int    `json:"age"`
+		}
+		var user User
+		err := c.ShouldBindJSON(&user)
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"name": user.Name, "age": user.Age})
+	})
+
+	// 5. 请求头
+	r.POST("header", func(ctx *gin.Context) {
+		type User struct {
+			Token       string `header:"Token"`
+			ContentType string `header:"Content-Type"`
+		}
+		var user User
+		err := ctx.ShouldBindHeader(&user)
+		if err != nil {
+			ctx.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(200, gin.H{"token": user.Token, "content_type": user.ContentType})
+	})
+
 	r.Run(":8080")
 }
