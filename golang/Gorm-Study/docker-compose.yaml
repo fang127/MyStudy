@@ -1,0 +1,20 @@
+name: Gorm-Study
+
+services:
+  # MySQL服务
+  Gorm-Study-MySQL:
+    image: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: gorm_study
+      MYSQL_USER: harry
+      MYSQL_PASSWORD: 123456
+    volumes:
+      - gorm_study_mysql:/var/lib/mysql
+
+# 定义数据卷
+volumes:
+  gorm_study_mysql:
+    
