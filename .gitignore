@@ -2,3 +2,5 @@
 build
 *.out
 build_asan
+.codex
+AGENTS.md
