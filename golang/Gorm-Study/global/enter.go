@@ -12,8 +12,20 @@ import (
 var DB *gorm.DB
 
 func Migrate() {
-	err := DB.AutoMigrate(&models.UserModel{})
-	err = DB.AutoMigrate(&models.UserDetailModel{})
+	err := DB.AutoMigrate(
+		&models.UserModel{},
+		&models.UserDetailModel{},
+		&models.BoyModel{},
+		&models.GirlModel{},
+		&models.ArticleModel{},
+		&models.TagModel{},
+		&models.Person{},
+		&models.Book{},
+		&models.PersonBook{},
+		&models.UserCustom{},
+		&models.LogModel{},
+	)
+
 	if err != nil {
 		log.Fatalln(err)
 	}

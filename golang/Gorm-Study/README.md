@@ -1687,3 +1687,272 @@ db.Joins("Profile").Find(&users)
 JOIN SQL
 适合 has one、belongs to
 ```
+
+### 8. 自定义数据类型 - 序列化
+
+GORM 允许你定义自定义数据类型，并实现 `Scanner` 和 `Valuer` 接口来控制如何将数据从数据库扫描到 Go 结构体，以及如何将 Go 结构体的值保存到数据库中。
+
+例如，定义一个 `JSONMap` 类型来存储 JSON 数据：
+
+```go
+type JSONMap map[string]interface{}
+
+func (m JSONMap) Value() (driver.Value, error) {
+    if len(m) == 0 {
+        return "{}", nil
+    }
+    return json.Marshal(m)
+}
+
+func (m *JSONMap) Scan(value interface{}) error {
+    if value == nil {
+        *m = make(JSONMap)
+        return nil
+    }
+    bytes, ok := value.([]byte)
+    if !ok {
+        return fmt.Errorf("failed to scan JSONMap: %v", value)
+    }
+    return json.Unmarshal(bytes, m)
+}
+```
+
+在模型中使用自定义类型：
+
+```go
+type User struct {
+    ID       uint
+    Name     string
+    Metadata JSONMap `gorm:"type:json"`
+}
+```
+
+- 在这个例子中，`JSONMap` 实现了 `Value` 方法来将 Go 的 `map[string]interface{}` 转换为 JSON 字符串存储到数据库中，同时实现了 `Scan` 方法来将数据库中的 JSON 字符串转换回 Go 的 `map[string]interface{}`。
+
+GORM 还支持自定义序列化器，可以在模型字段上使用 `serializer` 标签来指定一个实现了 `Serializer` 接口的类型，用于控制该字段的序列化和反序列化过程。例如：
+
+```go
+type User struct {
+    ID       uint
+    Name     string
+    Metadata JSONMap `gorm:"serializer:json"`
+}
+```
+
+- 在这个例子中，`Metadata` 字段使用了 `json` 序列化器，GORM 会自动将该字段的值序列化为 JSON 格式存储到数据库中，并在查询时反序列化回 Go 的类型。
+
+也可以自定义序列化器：
+
+一个Serializer需要实现如何对数据进行序列化和反序列化，所以需要实现如下接口
+
+```go
+import "gorm.io/gorm/schema"
+
+type SerializerInterface interface {
+    Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue interface{}) error
+    SerializerValuerInterface
+}
+
+type SerializerValuerInterface interface {
+    Value(ctx context.Context, field *schema.Field, dst reflect.Value, fieldValue interface{}) (interface{}, error)
+}
+例如，默认 JSONSerializer 的实现如下：
+
+// JSONSerializer json serializer
+type JSONSerializer struct {
+}
+
+// Scan implements serializer interface
+func (JSONSerializer) Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue interface{}) (err error) {
+    fieldValue := reflect.New(field.FieldType)
+
+    if dbValue != nil {
+        var bytes []byte
+        switch v := dbValue.(type) {
+        case []byte:
+            bytes = v
+        case string:
+            bytes = []byte(v)
+        default:
+            return fmt.Errorf("failed to unmarshal JSONB value: %#v", dbValue)
+        }
+
+        err = json.Unmarshal(bytes, fieldValue.Interface())
+    }
+
+    field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
+    return
+}
+
+// Value implements serializer interface
+func (JSONSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
+    return json.Marshal(fieldValue)
+}
+```
+
+并使用以下代码注册：
+
+```go
+schema.RegisterSerializer("json", JSONSerializer{})
+```
+
+注册序列化器后，您可以将其与 serializer 标签一起使用，例如：
+
+```go
+type User struct {
+    Name []byte `gorm:"serializer:json"`
+}
+```
+
+### 9. 自定义数据类型 - 枚举
+
+GORM 也支持自定义枚举类型，可以通过实现 `Scanner` 和 `Valuer` 接口来定义枚举类型的行为。例如，定义一个 `LevelInfo` 枚举类型：
+
+```go
+package models
+
+import "encoding/json"
+
+type Level int8
+
+const (
+	InfoLevel  Level = 1
+	WarnLevel  Level = 2
+	ErrorLevel Level = 3
+)
+
+type LogModel struct {
+	ID    uint   `json:"id" gorm:"primaryKey"`
+	Title string `gorm:"size:32"`
+	Level Level  `json"level"`
+}
+
+func (l LogModel) MarshalJSON() ([]byte, error) {
+	var str string
+	switch l.Level {
+	case InfoLevel:
+		str = "info"
+	case WarnLevel:
+		str = "warn"
+	case ErrorLevel:
+		str = "error"
+	default:
+		str = "unknown"
+	}
+	return json.Marshal(str)
+}
+```
+
+- 在这个例子中，`Level` 是一个自定义的枚举类型，定义了三个级别：`InfoLevel`、`WarnLevel` 和 `ErrorLevel`。在 `LogModel` 结构体中，`Level` 字段使用了自定义的枚举类型，并实现了 `MarshalJSON` 方法来控制 JSON 序列化时的输出格式。
+
+- 注意，MarshalJSON 方法只是控制 JSON 序列化的输出格式，如果需要控制数据库存储的值，还需要实现 `Scanner` 和 `Valuer` 接口来定义枚举类型在数据库中的存储和读取行为。
+
+### 10. 事务
+
+GORM 提供了事务支持，可以通过 `db.Transaction` 方法来执行一系列数据库操作，并确保它们要么全部成功，要么全部回滚。例如：
+
+```go
+package main
+
+import (
+	"Gorm-Study/global"
+	"Gorm-Study/models"
+
+	"gorm.io/gorm"
+)
+
+func main() {
+	global.Connect()
+
+	// 事务
+	// 1. 使用 db.Transaction() 方法
+	err := global.DB.Transaction(func(tx *gorm.DB) error {
+		// 在这里执行数据库操作
+		if err := tx.Create(&models.UserModel{Name: "Alice"}).Error; err != nil {
+			return err // 返回错误会回滚事务
+		}
+		if err := tx.Create(&models.UserModel{Name: "Bob"}).Error; err != nil {
+			return err // 返回错误会回滚事务
+		}
+		return nil // 返回 nil 会提交事务
+	})
+	if err != nil {
+		// 处理错误
+	}
+
+	// 2. 手动控制事务
+	tx := global.DB.Begin() // 开始事务
+	if err := tx.Create(&models.UserModel{Name: "Charlie"}).Error; err != nil {
+		tx.Rollback() // 回滚事务
+		return
+	}
+	if err := tx.Create(&models.UserModel{Name: "Dave"}).Error; err != nil {
+		tx.Rollback() // 回滚事务
+		return
+	}
+	tx.Commit() // 提交事务
+
+	// 3. 使用 SavePoint 和 RollbackTo
+	tx = global.DB.Begin() // 开始事务
+	if err := tx.Create(&models.UserModel{Name: "Eve"}).Error; err != nil {
+		tx.Rollback() // 回滚事务
+		return
+	}
+	tx.SavePoint("sp1") // 创建保存点
+	if err := tx.Create(&models.UserModel{Name: "Frank"}).Error; err != nil {
+		tx.RollbackTo("sp1") // 回滚到保存点
+		return
+	}
+	tx.Commit() // 提交事务
+
+	// 4. 使用嵌套事务
+	// GORM 支持嵌套事务，内层事务失败时可以回滚到内层事务的保存点，而不会影响外层事务。
+	// 注意：嵌套事务在某些数据库（如 MySQL）中可能不完全支持，具体行为取决于数据库的事务隔离级别和实现。
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&models.UserModel{Name: "Grace"}).Error; err != nil {
+			return err
+		}
+		return tx.Transaction(func(tx2 *gorm.DB) error {
+			if err := tx2.Create(&models.UserModel{Name: "Heidi"}).Error; err != nil {
+				return err
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		// 处理错误
+	}
+}
+```
+
+- 在这个例子中，展示了四种使用事务的方式：使用 `db.Transaction` 方法、手动控制事务、使用保存点以及嵌套事务。每种方式都确保了在发生错误时能够正确回滚事务，以保持数据的一致性。
+
+### 11. Gorm 配置
+
+GORM 提供了多种配置选项，可以通过 `gorm.Config` 结构体来设置。例如：
+
+```go
+gormConfig := &gorm.Config{
+    Logger: logger.Default.LogMode(logger.Info), // 设置日志级别
+    NamingStrategy: schema.NamingStrategy{
+        TablePrefix:   "prefix_", // 表名前缀
+        SingularTable: true,      // 使用单数表名
+    },
+    DisableForeignKeyConstraintWhenMigrating: true, // 迁移时禁用外键约束
+}
+db, err := gorm.Open(mysql.Open(dsn), gormConfig)
+if err != nil {
+    log.Fatalln("连接数据库失败", err)
+}
+```
+
+- 在这个例子中，创建了一个 `gorm.Config` 实例，并设置了日志级别、命名策略以及迁移时的外键约束行为。然后在打开数据库连接时将这个配置传入。
+
+- GORM 的配置选项非常丰富，可以根据需要进行调整，以满足不同的应用场景和需求。
+
+- 具体的配置选项可以参考 GORM 官方文档中的 [Config](https://gorm.io/zh_CN/docs/gorm_config.html) 部分，了解更多关于日志、命名策略、迁移行为等方面的配置细节。
+
+
+## 总结
+
+GORM 是一个功能强大且易于使用的 Go 语言 ORM 框架，提供了丰富的功能来简化数据库操作。通过本文的介绍，我们了解了 GORM 的基本使用方法、模型定义、查询构建器、原生 SQL 执行、迁移、关联关系、自定义数据类型以及事务处理等方面的内容。希望这些示例和说明能够帮助你更好地理解和使用 GORM 来构建高效的 Go 应用程序。
