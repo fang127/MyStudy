@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package calculator;
+
+// go_package 决定 protoc-gen-go 生成代码时的 Go import 路径和包名。
+// 生成命令建议在 grpc-demo 目录下执行：
+// protoc --go_out=. --go-grpc_out=. 2.grpc/proto/calculator.proto
+option go_package = "grpc-demo/2.grpc/pb;calculatorpb";
+
+// CalculatorService 用一个简单的“计算器”主题演示 gRPC 的四种传输模式。
+service CalculatorService {
+  // 1. 简单 RPC：客户端发送一次请求，服务端返回一次响应。
+  rpc Add(AddRequest) returns (AddResponse);
+
+  // 2. 客户端流式 RPC：客户端连续发送多个数字，服务端最终返回一次汇总结果。
+  rpc SumClientStream(stream NumberRequest) returns (SumResponse);
+
+  // 3. 服务端流式 RPC：客户端发送范围参数，服务端连续返回范围内的数字。
+  rpc RangeServerStream(RangeRequest) returns (stream NumberResponse);
+
+  // 4. 双向流式 RPC：客户端和服务端都可以连续发送消息，适合聊天、实时处理等场景。
+  rpc Chat(stream ChatRequest) returns (stream ChatResponse);
+}
+
+// 简单 RPC 的请求：计算 a + b。
+message AddRequest {
+  int32 a = 1;
+  int32 b = 2;
+}
+
+// 简单 RPC 的响应：返回加法结果。
+message AddResponse {
+  int32 result = 1;
+}
+
+// 客户端流式 RPC 的单次请求：每次发送一个数字。
+message NumberRequest {
+  int32 number = 1;
+}
+
+// 客户端流式 RPC 的最终响应：返回累计求和结果。
+message SumResponse {
+  int32 total = 1;
+}
+
+// 服务端流式 RPC 的请求：指定起止范围。
+message RangeRequest {
+  int32 start = 1;
+  int32 end = 2;
+}
+
+// 服务端流式 RPC 的单次响应：每次返回一个数字。
+message NumberResponse {
+  int32 number = 1;
+}
+
+// 双向流式 RPC 的客户端消息。
+message ChatRequest {
+  string name = 1;
+  string message = 2;
+}
+
+// 双向流式 RPC 的服务端消息。
+message ChatResponse {
+  string message = 1;
+}

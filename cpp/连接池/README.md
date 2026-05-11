@@ -1,6 +1,6 @@
-# C++ 通用连接池（支持统一适配层）
+# C++ 通用连接池
 
-这是一个线程安全的 C++17 连接池实现，支持同一个连接池承载多个后端（例如 MySQL、Redis），并通过统一适配层进行管理。
+这是一个线程安全的 C++17 通用连接池实现。连接池本身不绑定具体后端，调用方只需要实现 `IConnection` 接口并提供连接工厂，就可以接入数据库连接、缓存连接、HTTP 连接等资源。
 
 ## 功能特性
 
@@ -18,8 +18,7 @@
 
 - [connection_pool.h](connection_pool.h)：连接池核心接口、配置、统计、RAII Handle。
 - [connection_pool.cpp](connection_pool.cpp)：连接池核心实现（并发控制、维护线程、扩缩容、回收逻辑）。
-- [backend_adapter.h](backend_adapter.h)：统一适配层（多后端工厂 + 连接包装 + 示例适配器）。
-- [main.cpp](main.cpp)：演示程序（同一连接池同时接入 MySQL/Redis 模拟适配器）。
+- [main.cpp](main.cpp)：演示程序，使用 `MockDbConnection` 模拟连接创建、心跳、重连和泄漏回收。
 - [CMakeLists.txt](CMakeLists.txt)：构建配置。
 
 ## 架构分层
@@ -33,24 +32,14 @@ ConnectionPool（核心池管理：获取/归还/维护）
     Handle（RAII句柄：自动归还，防泄漏）
 ~~~
 
-## 统一适配层设计
+## 接入方式
 
-统一适配层核心思想：
+连接池核心只感知 `IConnection`：
 
-1. 每种后端实现 `IBackendAdapter`：
-   - `connect()`
-   - `close()`
-   - `ping()`
-2. `BackendAdapterConnection` 把后端适配器包装成连接池可识别的 `IConnection`。
-3. `UnifiedAdapterFactory` 注册多个后端构造器，并构建一个统一 `ConnectionFactory`。
-4. 连接池只感知 `IConnection`，从而做到同一个池支持多后端。
-
-当前示例中已提供：
-
-- `MockMySqlAdapter`
-- `MockRedisAdapter`
-
-并在 [main.cpp](main.cpp) 中通过 `UnifiedAdapterFactory` 同时注册后放入一个连接池。
+1. 业务连接实现 `connect()`、`close()`、`ping()`。
+2. 创建连接池时传入 `ConnectionFactory`。
+3. 使用 `acquire()` 获取 RAII `Handle`。
+4. `Handle` 析构或手动 `release()` 时，连接自动归还连接池。
 
 ## 快速开始
 
@@ -67,7 +56,7 @@ cmake --build build -j
 ./build/connection_pool_demo
 ~~~
 
-程序会周期输出连接池统计，例如：
+程序会创建多个工作线程并周期输出连接池统计，例如：
 
 - 总连接数
 - 空闲连接数
@@ -75,7 +64,6 @@ cmake --build build -j
 - 泄漏回收次数
 - 重连成功/失败
 - 创建失败次数
-- 各后端操作计数（`mysql_ops` / `redis_ops`）
 
 ## 配置说明
 
@@ -90,21 +78,21 @@ cmake --build build -j
 - `reconnectAttempts`：重连尝试次数
 - `reconnectBackoff`：重连退避间隔
 
-## 如何接入真实 MySQL/Redis
+## 如何接入真实连接
 
-思路是把你实际的客户端对象封装进 `IBackendAdapter`。
+思路是把真实客户端对象封装进 `IConnection`。
 
 示例（伪代码）：
 
 ~~~cpp
-class MySqlAdapter : public IBackendAdapter {
+class MySqlConnection : public IConnection {
 public:
     bool connect() override { /* mysql_real_connect */ }
     void close() noexcept override { /* mysql_close */ }
     bool ping() override { /* mysql_ping */ }
 };
 
-class RedisAdapter : public IBackendAdapter {
+class RedisConnection : public IConnection {
 public:
     bool connect() override { /* redisConnect */ }
     void close() noexcept override { /* redisFree */ }
@@ -112,18 +100,16 @@ public:
 };
 ~~~
 
-然后注册：
+然后创建连接池：
 
 ~~~cpp
-UnifiedAdapterFactory unified;
-unified.addBackend("mysql", []() { return std::make_unique<MySqlAdapter>(); });
-unified.addBackend("redis", []() { return std::make_unique<RedisAdapter>(); });
-
-auto pool = ConnectionPool::Create(cfg, unified.buildConnectionFactory());
+auto pool = ConnectionPool::Create(
+    cfg,
+    []() { return std::make_unique<MySqlConnection>(); });
 ~~~
 
 ## 注意事项
 
 1. 示例里故意制造了少量“泄漏”以演示强制回收机制，生产代码不要这样做。
-2. 当你需要按业务路由到特定后端时，建议扩展工厂策略（按权重、按标签、按请求上下文分配）。
+2. 当你需要按业务路由到不同后端时，可以在工厂函数中扩展策略（按权重、按标签、按请求上下文分配）。
 3. 若要提升观测性，建议在连接池中增加日志钩子或导出监控指标。

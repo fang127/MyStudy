@@ -2,6 +2,26 @@
 
 这是一个Gin框架的学习项目，包含了Gin框架的基本使用、路由、请求处理、中间件等内容。通过这个项目，你可以快速上手Gin框架，了解其核心功能和最佳实践。
 
+## 章节目录
+
+| 目录 | 主题 |
+| --- | --- |
+| [1.init_gin](1.init_gin/main.go) | 初始化 Gin 和基础路由。 |
+| [2.response_json](2.response_json/main.go) | JSON 响应。 |
+| [3.response_html](3.response_html/main.go) | HTML 模板响应。 |
+| [4.response_file](4.response_file/main.go) | 文件响应和下载。 |
+| [5.static_file](5.static_file/main.go) | 静态文件服务。 |
+| [6.query_param](6.query_param/main.go) | 查询参数。 |
+| [7.path_param](7.path_param/main.go) | 路径参数。 |
+| [8.form_param](8.form_param/main.go) | 表单参数。 |
+| [9.load_user_file](9.load_user_file/main.go) | 文件上传。 |
+| [10.original_content](10.original_content/main.go) | 原始请求体读取。 |
+| [11.bind](11.bind/main.go) | 数据绑定。 |
+| [12.bind_rule](12.bind_rule/main.go) | 绑定规则。 |
+| [13.bind_show_err_zh](13.bind_show_err_zh/main.go) | 中文错误提示。 |
+| [14.router](14.router/main.go) | 路由组织。 |
+| [15.middleware](15.middleware/main.go) | 中间件。 |
+
 ## Gin官网
 
 https://gin-gonic.com/zh-cn/docs/

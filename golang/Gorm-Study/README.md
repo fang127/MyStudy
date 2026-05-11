@@ -2,6 +2,22 @@
 
 这是一个使用Gorm进行数据库操作的学习项目。Gorm是一个流行的Go语言ORM库，提供了丰富的功能和简洁的API，使得数据库操作更加方便和高效。
 
+## 章节目录
+
+| 目录 | 主题 |
+| --- | --- |
+| [1.traditional_database_operations](1.traditional_database_operations/main.go) | 使用 `database/sql` 的传统数据库操作。 |
+| [2.gorm_database_operator](2.gorm_database_operator/main.go) | Gorm 连接和基础查询。 |
+| [3.single_table_model](3.single_table_model/main.go) | 单表模型定义。 |
+| [4.single_table_operator](4.single_table_operator/main.go) | 单表 CRUD 操作。 |
+| [5.origin_sql](5.origin_sql/main.go) | 原生 SQL。 |
+| [6.one_to_one_table_relation](6.one_to_one_table_relation/main.go) | 一对一关系。 |
+| [7.one_to_many_table_relation](7.one_to_many_table_relation/main.go) | 一对多关系。 |
+| [8.many_to_many_table_relation](8.many_to_many_table_relation/main.go) | 多对多关系。 |
+| [9.custom_many_to_many_table_relation](9.custom_many_to_many_table_relation/main.go) | 自定义多对多关系。 |
+| [10.custom_datatype](10.custom_datatype/main.go) | 自定义数据类型。 |
+| [11.transaction](11.transaction/main.go) | 事务。 |
+
 ## 什么是Gorm？
 
 ORM是对象关系映射的缩写，它是一种将数据库表映射为编程语言中的对象的技术。简单说就是使用一个结构体或类来表示数据库中的一张表，类的属性对应表中的字段。Gorm就是这样一个ORM库，它允许开发者使用Go语言的结构体来定义数据库模型，并通过方法调用来执行CRUD（创建、读取、更新、删除）操作。
