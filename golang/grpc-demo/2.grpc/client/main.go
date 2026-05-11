@@ -69,7 +69,7 @@ func callAddAsync(client calculatorpb.CalculatorServiceClient) {
 func callClientStream(client calculatorpb.CalculatorServiceClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-
+	// SumClientStream 是一个客户端流式 RPC，返回一个 stream 对象，客户端通过它发送多条请求消息，最后等待服务端返回一个响应。
 	stream, err := client.SumClientStream(ctx)
 	if err != nil {
 		log.Fatalf("[客户端流式 RPC] 创建流失败：%v", err)

@@ -90,15 +90,17 @@ func (s *calculatorServer) Chat(stream grpc.BidiStreamingServer[calculatorpb.Cha
 }
 
 func main() {
+	// 在本地监听 50051 端口，等待客户端连接。
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("监听端口失败：%v", err)
 	}
-
+	// 创建 gRPC 服务器实例，并注册 CalculatorService 服务实现。
 	grpcServer := grpc.NewServer()
 	calculatorpb.RegisterCalculatorServiceServer(grpcServer, &calculatorServer{})
 
 	log.Println("gRPC 服务已启动，监听地址：:50051")
+	// 启动 gRPC 服务器，阻塞等待客户端连接和请求。
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("启动 gRPC 服务失败：%v", err)
 	}
