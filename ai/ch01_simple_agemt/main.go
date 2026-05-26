@@ -3,7 +3,9 @@ package main
 import (
 	"ai/utility"
 	"context"
+	"errors"
 	"log"
+	"os"
 
 	"github.com/cloudwego/eino-ext/components/model/ollama"
 	"github.com/cloudwego/eino/schema"
@@ -21,11 +23,20 @@ func CreateChatAgent(ctx context.Context, config utility.Config) (*ollama.ChatMo
 }
 
 func main() {
-	context := context.Background()
+	f, err := os.OpenFile("app.log", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+	if err != nil {
+
+		panic(errors.New("无法打开日志文件: " + err.Error()))
+	}
+	defer f.Close()
+	utility.InitLogger(f)
+
 	config, err := utility.Load()
 	if err != nil {
 		log.Fatal("环境变量加载失败: ", err)
 	}
+
+	context := context.Background()
 	agent, err := CreateChatAgent(context, config)
 	if err != nil {
 		log.Fatal("创建Agent失败: ", err)
