@@ -1,0 +1,19 @@
+name: mini_agent
+version: 0.1.0
+
+services:
+  # ollama:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    gpus: all
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
