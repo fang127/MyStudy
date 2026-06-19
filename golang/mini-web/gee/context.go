@@ -20,6 +20,13 @@ type Context struct {
 
 	// 响应状态码
 	StatusCode int
+
+	// 中间件
+	handlers []HandlerFunc
+	index    int
+
+	// engine 指针，方便访问引擎实例
+	engine *Engine
 }
 
 func (c *Context) Param(key string) string {
@@ -34,7 +41,21 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Req:    req,
 		Path:   req.URL.Path,
 		Method: req.Method,
+		index:  -1,
 	}
+}
+
+func (c *Context) Next() {
+	c.index++
+	len := len(c.handlers)
+	for ; c.index < len; c.index++ {
+		c.handlers[c.index](c)
+	}
+}
+
+func (c *Context) Fail(code int, err string) {
+	c.index = len(c.handlers)
+	c.JSON(code, H{"message": err})
 }
 
 // 从 POST 请求中获取表单数据
@@ -82,8 +103,10 @@ func (c *Context) Data(code int, data []byte) {
 }
 
 // 格式化 HTML 响应
-func (c *Context) HTML(code int, html string) {
+func (c *Context) HTML(code int, name string, data interface{}) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
-	c.Writer.Write([]byte(html))
+	if err := c.engine.htmlTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.Fail(500, err.Error())
+	}
 }
